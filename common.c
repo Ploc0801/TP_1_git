@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 
+
 void logexit(const char *msg)
 {
     perror(msg); // imprime o erro que ocorreu na msg
@@ -118,5 +119,35 @@ int server_sockaddr_init(const char *proto, const char *portstr,
     else
     {
         return -1;
+    }
+}
+
+
+int verifica_mensagem(const char* tipo)
+{
+    if(0 ==strcmp("MSG_REQUEST",tipo)){
+        return 1;
+    }
+    else if(0 ==strcmp("MSG_RESPONSE",tipo)){
+        return 2;
+    }
+    else if(0 ==strcmp("MSG_RESULT",tipo)){
+        return 3;
+    }
+    else if(0 ==strcmp("MSG_PLAY_AGAIN_REQUEST",tipo)){
+        return 4;
+    }
+     else if(0 ==strcmp("MSG_PLAY_AGAIN_RESPONSE",tipo)){
+        return 5;
+    }
+    else if(0 ==strcmp("MSG_ERROR",tipo)){
+        return 6;
+    }
+    else if(0 ==strcmp("MSG_END",tipo)){
+        return 7;
+    }
+    else
+    {
+        return 0;
     }
 }

@@ -58,24 +58,53 @@ int main(int argc, char **argv)
     addrtostr(addr, addrstr, BUFSZ);
     printf("bound to %s, waiting connections\n", addrstr);
 
+
     while (1)
     {
         struct sockaddr_storage cstorage;
         struct sockaddr *caddr = (struct sockaddr *)(&cstorage); // socket q conversa c o cliente
         socklen_t caddrlen = sizeof(cstorage);
+        //Aceitando a conexao do cliente
         int csock = accept(s, caddr, &caddrlen);
-        if (csock == -1)
-        {
-            logexit("accept");
+                if (csock == -1)
+                {
+                    logexit("accept");
+                }
+
+        //Enviando a primeira mensagem (MSG_REQUEST)
+        GameMessage msg;
+        memset(&msg,0,sizeof(GameMessage));
+        msg.type = 3;
+        strcpy(msg.message,"Escolha a sua jogada:\n\n0 - Nuclear Attack\n1 - Intercept Attack\n"
+        "2 - Cyber Attack\n3 - Drone Strike\n4 - Bio Attack\n\n");
+
+        char buffer[BUFSZ];
+        memset(buffer, 0, BUFSZ);
+        memcpy(buffer,&msg,sizeof(GameMessage));
+        size_t count = send(csock, buffer, sizeof(GameMessage), 0); // send retorna o numero de bytes que foram enviados na rede
+        if (count != sizeof(GameMessage))// send(socket, *variavel, tamanho, 0(n vai mandar funcoes pelo send))
+        { 
+        logexit("send");
         }
 
+        //Recebendo a resposta do cliente
+        memset(buffer, 0, BUFSZ);
+        count = recv(csock, buffer, BUFSZ, 0);
+        // if (count != sizeof(GameMessage)){
+        //     logexit("recv");
+        // }
+        GameMessage *msg_pointer = (GameMessage*)buffer; //trata o buffer como um ponteiro para GameMessage
+        printf("%d\n",msg_pointer->client_action);
+
+
+        
         char caddrstr[BUFSZ];
         addrtostr(addr, caddrstr, BUFSZ);
         printf("[log] connection from %s\n", caddrstr);
 
         char buf[BUFSZ];
         memset(buf, 0, BUFSZ);
-        size_t count = recv(csock, buf, BUFSZ, 0);
+        count = recv(csock, buf, BUFSZ, 0);
         printf("[msg] %s, %d bytes: %s\n", caddrstr, (int)count, buf);
 
         sprintf(buf, "remote endpoint: %.1000s\n", caddrstr);

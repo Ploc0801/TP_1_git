@@ -45,35 +45,76 @@ int main(int argc, char **argv)
     }
 
     char addrstr[BUFSZ];
-    addrtostr(addr, addrstr, BUFSZ);
-
+    addrtostr(addr, addrstr, BUFSZ); //essa funcao converte o endereco em string
     printf("connected to %s\n", addrstr);
 
-    char buf[BUFSZ];
-    memset(buf, 0, BUFSZ); // argumentos (ponteiro do valor inicial, valor de setagem, qts bytes devem ser setados com o valor)
-    printf("mensagem> ");
-    fgets(buf, BUFSZ - 1, stdin);                    // le input do usuario(stdin), armazena em buf. a funcao para quando encontra \n ou o tamanho pre estabelecido
-    size_t count = send(s, buf, strlen(buf) + 1, 0); // send retorna o numero de bytes que foram enviados na rede
-    if (count != strlen(buf) + 1)
-    { // send(socket, variavel, tamanho(o +1 é pro \0), 0(n vai mandar funcoes pelo send))
-        logexit("send");
-    }
+    
 
-    memset(buf, 0, BUFSZ);
+    // //Respondendo o jokempo
+    // memset(&msg,0,sizeof(GameMessage));
+    // memset(buffer, 0, BUFSZ); 
+    // msg.type = 1;
+    // printf("Sua escolha: ");
+    // fgets(buffer, BUFSZ - 1, stdin);                    // le input do usuario(stdin), armazena em buf. a funcao para quando encontra \n ou o tamanho pre estabelecido
+    // count = send(s, buffer, strlen(buffer) + 1, 0); // send retorna o numero de bytes que foram enviados na rede
+    // if (count != strlen(buffer) + 1)
+    // { // send(socket, variavel, tamanho(o +1 é pro \0), 0(n vai mandar funcoes pelo send))
+    //     logexit("send");
+    // }
+
     unsigned total = 0; // total de bytes recebidos
     while (1)
     {
-        count = recv(s, buf + total, BUFSZ - total, 0); // a medida que o dado vai chegando, coloca o dado na posicao buf+total, e diminui o tamanho
-        if (count == 0)
-        { // so retorna 0 se a conexao esta fechada
-            break;
+        
+        //Recebendo a primeira mensagem
+        char buffer[BUFSZ];
+        memset(buffer, 0, BUFSZ);
+        size_t count = recv(s, buffer, sizeof(GameMessage), 0);
+        if (count != sizeof(GameMessage)){
+            logexit("recv");
         }
-        total += count;
+
+        GameMessage msg;
+        memcpy(&msg, buffer, sizeof(GameMessage));
+        printf("%s",msg.message);
+        scanf("%d",&msg.client_action);
+        printf("Você escolheu: %d", msg.client_action);
+         break;
+        //Respondendo o jokempo
+        
+        // memset(buffer, 0, BUFSZ);
+        // memset(msg, 0, sizeof(GameMessage));
+        // printf("Sua escolha: ");
+
+        // fgets(buffer, BUFSZ, stdin);   
+        // printf("%s\n", buffer);
+        // int resposta_cliente;
+        // sscanf(buffer, "%d" ,&resposta_cliente);
+        // printf("%d",resposta_cliente);
+
+        // msg->client_action = resposta_cliente; //atribuindo a reposta para o GameMessage
+        // msg->type = 1; //MSG_RESPONSE
+        // memset(buffer, 0, BUFSZ);
+        // memcpy(buffer,msg,sizeof(GameMessage));
+        // count = send(s, buffer, sizeof(GameMessage), 0); 
+        // if (count != sizeof(GameMessage))   
+        // { 
+        //     logexit("send");
+        // }
+
+        // count = recv(s, buffer + total, BUFSZ - total, 0); // a medida que o dado vai chegando, coloca o dado na posicao buf+total, e diminui o tamanho
+        // if (count == 0)
+        // { // so retorna 0 se a conexao esta fechada
+        //     break;
+        // }
+        // total += count;
+
+        
     }
 
     close(s);
 
     printf("received %d bytes\n", total);
-    puts(buf); // printa a string ate que encontre o \0
+    //puts(buffer); // printa a string ate que encontre o \0
     exit(EXIT_SUCCESS);
 }
