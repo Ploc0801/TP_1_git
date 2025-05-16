@@ -6,8 +6,157 @@
 #include <sys/types.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <time.h>
 
 #define BUFSZ 1024 // tamanho da mensagem
+
+int ProcessaJogada(int acao){  //retorna 1 se o cliente envia uma acao invalida
+    if(acao < 0 || acao >= 5){
+        return 1;
+    }
+    else{
+        return 0;
+    }
+}
+
+int JogadaServidor(){  //escolhe um numero aleatorio de 0 a 4 para a jogada do servidor
+    srand(time(NULL)); 
+    int resultado = rand() % (5);
+    return resultado;
+}
+
+int JogarPartida(int cliente, int servidor){ //processa a partida do servidor e do cliente(1 vitoria,0 derrota, -1 empate)
+    int resultado;
+    //Nuclear Attack
+    if(cliente == 0){
+        if(servidor == 0){
+            resultado = -1;
+            return resultado;
+        }
+        else if(servidor == 1){
+            resultado = 0;
+            return resultado;
+        }
+         else if(servidor == 2){
+            resultado = 1;
+            return resultado;
+        }
+         else if(servidor == 3){
+            resultado = 1;
+            return resultado;
+        }
+         else if(servidor == 4){
+            resultado = 0;
+            return resultado;
+        }
+    }
+
+    //Intercept Attack
+    else if(cliente == 1){
+        if(servidor == 0){
+            resultado = 1;
+            return resultado;
+        }
+        else if(servidor == 1){
+            resultado = -1;
+            return resultado;
+        }
+         else if(servidor == 2){
+            resultado = 0;
+            return resultado;
+        }
+         else if(servidor == 3){
+            resultado = 0;
+            return resultado;
+        }
+         else if(servidor == 4){
+            resultado = 1;
+            return resultado;
+        }
+    }
+
+    //Cyber Attack
+    else if(cliente == 2){
+        if(servidor == 0){
+            resultado = 0;
+            return resultado;
+        }
+        else if(servidor == 1){
+            resultado = 1;
+            return resultado;
+        }
+         else if(servidor == 2){
+            resultado = -1;
+            return resultado;
+        }
+         else if(servidor == 3){
+            resultado = 1;
+            return resultado;
+        }
+         else if(servidor == 4){
+            resultado = 0;
+            return resultado;
+        }
+    }
+
+    //Drone Strike
+    else if(cliente == 3){
+        if(servidor == 0){
+            resultado = 0;
+            return resultado;
+        }
+        else if(servidor == 1){
+            resultado = 1;
+            return resultado;
+        }
+         else if(servidor == 2){
+            resultado = 0;
+            return resultado;
+        }
+         else if(servidor == 3){
+            resultado = -1;
+            return resultado;
+        }
+         else if(servidor == 4){
+            resultado = 1;
+            return resultado;
+        }
+    }
+
+    //Bio Attack
+    else {
+        if(servidor == 0){
+            resultado = 1;
+            return resultado;
+        }
+        else if(servidor == 1){
+            resultado = 0;
+            return resultado;
+        }
+         else if(servidor == 2){
+            resultado = 1;
+            return resultado;
+        }
+         else if(servidor == 3){
+            resultado = 0;
+            return resultado;
+        }
+         else if(servidor == 4){
+            resultado = -1;
+            return resultado;
+        }
+    }
+return 0;
+}
+
+void ContabilizaPlacar(int resultado, int* cliente, int* servidor){
+    if(resultado==0){
+        (*servidor)++;
+    }
+    if(resultado == 1){
+        (*cliente)++;
+    }
+}
 
 void usage(int argc, char **argv)
 {
@@ -54,66 +203,183 @@ int main(int argc, char **argv)
         logexit("listen");
     }
 
-    char addrstr[BUFSZ];
-    addrtostr(addr, addrstr, BUFSZ);
-    printf("bound to %s, waiting connections\n", addrstr);
-
+    //inicializando buffer e mensagem de jogo
+    char buffer[BUFSZ];
+    memset(buffer, 0, BUFSZ);
+    GameMessage msg;
+    memset(&msg,0,sizeof(GameMessage));
+    int placarServidor = 0;
+    int placarCliente = 0;
+    int jogando = 1;
 
     while (1)
-    {
+    {   
+        
         struct sockaddr_storage cstorage;
-        struct sockaddr *caddr = (struct sockaddr *)(&cstorage); // socket q conversa c o cliente
+        struct sockaddr *caddr = (struct sockaddr *)(&cstorage); //socket q conversa c o cliente
         socklen_t caddrlen = sizeof(cstorage);
+        printf("Servidor iniciado em modo IP%s na porta %s. Aguardando conexão...\n",argv[1],argv[2]);
+
+
         //Aceitando a conexao do cliente
         int csock = accept(s, caddr, &caddrlen);
                 if (csock == -1)
                 {
                     logexit("accept");
                 }
+        printf("Cliente conectado.\n");
+
 
         //Enviando a primeira mensagem (MSG_REQUEST)
-        GameMessage msg;
-        memset(&msg,0,sizeof(GameMessage));
-        msg.type = 3;
-        strcpy(msg.message,"Escolha a sua jogada:\n\n0 - Nuclear Attack\n1 - Intercept Attack\n"
-        "2 - Cyber Attack\n3 - Drone Strike\n4 - Bio Attack\n\n");
+                msg.type = 0;
+                strcpy(msg.message,"Escolha a sua jogada:\n\n0 - Nuclear Attack\n1 - Intercept Attack\n"
+                "2 - Cyber Attack\n3 - Drone Strike\n4 - Bio Attack\n\n");
 
-        char buffer[BUFSZ];
-        memset(buffer, 0, BUFSZ);
-        memcpy(buffer,&msg,sizeof(GameMessage));
-        size_t count = send(csock, buffer, sizeof(GameMessage), 0); // send retorna o numero de bytes que foram enviados na rede
-        if (count != sizeof(GameMessage))// send(socket, *variavel, tamanho, 0(n vai mandar funcoes pelo send))
-        { 
-        logexit("send");
-        }
-
-        //Recebendo a resposta do cliente
-        memset(buffer, 0, BUFSZ);
-        count = recv(csock, buffer, BUFSZ, 0);
-        // if (count != sizeof(GameMessage)){
-        //     logexit("recv");
-        // }
-        GameMessage *msg_pointer = (GameMessage*)buffer; //trata o buffer como um ponteiro para GameMessage
-        printf("%d\n",msg_pointer->client_action);
+                memcpy(buffer,&msg,sizeof(GameMessage));
+                size_t count = send(csock, buffer, sizeof(GameMessage), 0); // send retorna o numero de bytes que foram enviados na rede
+                if (count != sizeof(GameMessage))// send(socket, *variavel, tamanho, 0(n vai mandar funcoes pelo send))
+                { 
+                logexit("send");
+                }
+                printf("Apresentando as opções para o cliente.\n");
 
 
-        
-        char caddrstr[BUFSZ];
-        addrtostr(addr, caddrstr, BUFSZ);
-        printf("[log] connection from %s\n", caddrstr);
-
-        char buf[BUFSZ];
-        memset(buf, 0, BUFSZ);
-        count = recv(csock, buf, BUFSZ, 0);
-        printf("[msg] %s, %d bytes: %s\n", caddrstr, (int)count, buf);
-
-        sprintf(buf, "remote endpoint: %.1000s\n", caddrstr);
-        count = send(csock, buf, strlen(buf) + 1, 0);
-        if (count != strlen(buf) + 1)
+        while(jogando)
         {
+       
+        //Recebendo a resposta do cliente
+        count = recv(csock, buffer, sizeof(GameMessage), 0);
+        if (count != sizeof(GameMessage))
+            { 
             logexit("send");
+            }
+        memcpy(&msg, buffer, sizeof(GameMessage));
+        
+
+        if (msg.type == 0){
+            strcpy(msg.message,"Escolha a sua jogada:\n\n0 - Nuclear Attack\n1 - Intercept Attack\n"
+                "2 - Cyber Attack\n3 - Drone Strike\n4 - Bio Attack\n\n");
+
+                memcpy(buffer,&msg,sizeof(GameMessage));
+                size_t count = send(csock, buffer, sizeof(GameMessage), 0); // send retorna o numero de bytes que foram enviados na rede
+                if (count != sizeof(GameMessage))// send(socket, *variavel, tamanho, 0(n vai mandar funcoes pelo send))
+                { 
+                logexit("send");
+                }
         }
+        else if(msg.type == 1){
+            if(ProcessaJogada(msg.client_action)) //retorna 1 se houver erro na jogada
+            { 
+            msg.type = 5; //error
+            
+            strcpy(msg.message,"Por favor, selecione um valor de 0 a 4\nEscolha a sua jogada:\n\n0 - Nuclear Attack\n1 - Intercept Attack\n"
+        "2 - Cyber Attack\n3 - Drone Strike\n4 - Bio Attack\n\n");
+            memcpy(buffer,&msg,sizeof(GameMessage));
+            count = send(csock, buffer, sizeof(GameMessage), 0); 
+            if (count != sizeof(GameMessage))
+            { 
+                logexit("send");
+            }
+             }else{
+            
+            msg.type = 2;
+            msg.server_action = JogadaServidor(); //Processa a jogada do servidor
+            printf("Cliente escolheu %d.\n",msg.client_action);
+            printf("Servidor escolheu aleatoriamente %d.\n", msg.server_action);
+            msg.result = JogarPartida(msg.client_action,msg.server_action); //Processa o resultado da partida
+            ContabilizaPlacar(msg.result,&placarCliente, &placarServidor);
+            if(msg.result==-1){
+                printf("Jogo empatado.\nSolicitando ao cliente mais uma escolha.\n");
+            }
+            else{
+                 printf("Placar atualizado: Cliente %d x %d Servidor.\n", placarCliente,placarServidor);
+            }
+           
+
+            memcpy(buffer,&msg,sizeof(GameMessage));    //enviando o resultado
+            count = send(csock, buffer, sizeof(GameMessage), 0); 
+            if (count != sizeof(GameMessage))
+            { 
+                logexit("send");
+            }
+        
+         } 
+        } else if(msg.type == 2){ //ocorre logo apos determinar o resultado
+            if(msg.result==-1){ //se der empate
+                msg.type = 0;
+                strcpy(msg.message,"Escolha a sua jogada:\n\n0 - Nuclear Attack\n1 - Intercept Attack\n"
+                "2 - Cyber Attack\n3 - Drone Strike\n4 - Bio Attack\n\n");
+            }
+            else{
+            msg.type = 3;
+            strcpy(msg.message,"Deseja jogar novamente?\n1 - Sim\n0 - Não\n\n");
+            printf("Perguntando se o cliente deseja jogar novamente.\n\n");
+            }
+
+            memcpy(buffer,&msg,sizeof(GameMessage));
+            count = send(csock, buffer, sizeof(GameMessage), 0); 
+            if (count != sizeof(GameMessage))
+            { 
+                logexit("send");
+            }
+         
+        } else if(msg.type == 4){
+            int jogar_novamente = msg.client_action;
+            if(jogar_novamente != 0 && jogar_novamente != 1){
+                printf("Erro: resposta inválida para jogar novamente.\n\n");
+                msg.type = 3;
+                strcpy(msg.message,"Deseja jogar novamente?\n1 - Sim\n0 - Não\n\n");
+                printf("Perguntando se o cliente deseja jogar novamente.\n\n");
+                memcpy(buffer,&msg,sizeof(GameMessage));
+                size_t count = send(csock, buffer, sizeof(GameMessage), 0); // send retorna o numero de bytes que foram enviados na rede
+                if (count != sizeof(GameMessage))// send(socket, *variavel, tamanho, 0(n vai mandar funcoes pelo send))
+                { 
+                logexit("send");
+                }
+                
+            }
+            else{
+            if(jogar_novamente == 1){
+                jogando = 1;
+                msg.type = 0;
+                strcpy(msg.message,"Escolha a sua jogada:\n\n0 - Nuclear Attack\n1 - Intercept Attack\n"
+                "2 - Cyber Attack\n3 - Drone Strike\n4 - Bio Attack\n\n");
+                 memcpy(buffer,&msg,sizeof(GameMessage));
+                size_t count = send(csock, buffer, sizeof(GameMessage), 0); // send retorna o numero de bytes que foram enviados na rede
+                if (count != sizeof(GameMessage))// send(socket, *variavel, tamanho, 0(n vai mandar funcoes pelo send))
+                { 
+                logexit("send");
+                }
+                printf("Apresentando as opções para o cliente.\n");
+
+            }
+            else{
+                jogando = 0;
+                msg.type = 6;
+                printf("Cliente não deseja jogar novamente.\nEnviando Placar Final.\n");
+                sprintf(msg.message,"Fim de jogo!\nPlacar Final: Você %d x %d Servidor\nObrigado por jogar!\n",placarCliente,placarServidor);
+                memcpy(buffer,&msg,sizeof(GameMessage));
+                size_t count = send(csock, buffer, sizeof(GameMessage), 0); // send retorna o numero de bytes que foram enviados na rede
+                if (count != sizeof(GameMessage))// send(socket, *variavel, tamanho, 0(n vai mandar funcoes pelo send))
+                { 
+                logexit("send");
+                }
+
+            }
+          }
+        }
+       
+
+}
+        
+        memset(buffer, 0, BUFSZ);
+        memset(&msg,0,sizeof(GameMessage));
+        placarServidor = 0;
+        placarCliente = 0;
+        jogando = 1;
+        printf("Encerrando conexão.\nCliente Desconectado.\n\n");
         close(csock);
+    
     }
 
     exit(EXIT_SUCCESS);
